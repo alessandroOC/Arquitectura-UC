@@ -1,0 +1,176 @@
+\documentclass[12pt, a4paper]{article}
+
+% Paquetes de configuración
+\usepackage[utf8]{inputenc}     % Codificación de caracteres
+\usepackage[spanish]{babel}     % Idioma español
+\usepackage{geometry}           % Márgenes
+\usepackage{booktabs}           % Tablas profesionales
+\usepackage{array}              % Mejor manejo de tablas
+\usepackage{titlesec}           % Formato de títulos
+\usepackage{caption}            % Leyendas de tablas
+\usepackage{float}              % Posicionamiento de tablas
+\usepackage{amsmath}            % Símbolos matemáticos
+
+% Configuración de márgenes
+\geometry{
+    top=2.5cm,
+    bottom=2.5cm,
+    left=2.5cm,
+    right=2.5cm
+}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    
+    {\Large \textbf{Universidad de Carabobo}}\\[0.5cm]
+    {\large FACYT}\\[0.5cm]
+    {\large Computación}\\[2.0cm]
+    
+    % Logo (opcional)
+    % \includegraphics[width=0.4\textwidth]{logo_universidad.png}\\[1cm]
+    
+    {\Huge \textbf{ Repertorio de Instrucciones MIPS32}}\\[0.5cm]
+    {\large Análisis de las instrucciones fundamentales y formatos}\\[2.0cm]
+    
+    \textbf{Materia:}\\
+    Arquitectura del Computador\\[1.5cm]
+    
+    \textbf{Elaborado por:}\\
+    Alessandro Ocanto\\
+    C.I: 31.467.550\\[2.0cm]
+    
+    \vfill
+    
+    {\large \today}
+\end{titlepage}
+
+\section{Introducción}
+
+La arquitectura MIPS (Microprocessor without Interlocked Pipeline Stages) es uno de los ejemplos más representativos de la filosofía RISC (Reduced Instruction Set Computer). Su diseño se centra en un conjunto de instrucciones simplificado y regular, lo que permite una ejecución eficiente a través de la segmentación (pipelining).
+
+El presente documento tiene como objetivo sintetizar y categorizar las instrucciones más críticas del repertorio MIPS32. Basado en los datos de referencia estándar (Patterson \& Hennessy), se desglosan las operaciones aritméticas, lógicas, de transferencia de datos y de control de flujo. Asimismo, se describen los formatos de instrucción básicos (R, I, J) que definen cómo el hardware interpreta estos comandos.
+
+Este resumen sirve como guía técnica para comprender la manipulación de registros, el acceso a memoria y la lógica de ramificación a nivel de lenguaje ensamblador.
+
+
+
+\section{Formatos de Instrucción}
+Todas las instrucciones MIPS tienen una longitud fija de 32 bits. La simplicidad del diseño se refleja en el uso de solo tres formatos básicos:
+
+\begin{table}[H]
+    \centering
+    \caption{Formatos Básicos de Instrucción MIPS}
+    \begin{tabular}{|c|c|c|c|c|c|c|}
+        \hline
+        \textbf{Tipo} & \multicolumn{6}{c|}{\textbf{Campos (bits)}} \\
+        \hline
+        \textbf{R} & \texttt{op} (6) & \texttt{rs} (5) & \texttt{rt} (5) & \texttt{rd} (5) & \texttt{shamt} (5) & \texttt{funct} (6) \\
+        \hline
+        \textbf{I} & \texttt{op} (6) & \texttt{rs} (5) & \texttt{rt} (5) & \multicolumn{3}{c|}{\texttt{inmediato} (16)} \\
+        \hline
+        \textbf{J} & \texttt{op} (6) & \multicolumn{5}{c|}{\texttt{dirección} (26)} \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\section{Instrucciones Aritméticas}
+Estas instrucciones realizan operaciones matemáticas en registros. La mayoría utiliza el formato tipo R (registro a registro) o tipo I (con un operando inmediato).
+
+\begin{table}[H]
+    \centering
+    \caption{Instrucciones Aritméticas Principales}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{@{}l l l l@{}}
+        \toprule
+        \textbf{Nombre} & \textbf{Mnemónico} & \textbf{Fmt} & \textbf{Operación (Verilog)} \\
+        \midrule
+        Suma & \texttt{add} & R & $R[rd] = R[rs] + R[rt]$ \\
+        Suma inmediata & \texttt{addi} & I & $R[rt] = R[rs] + ExtSigno(Inm)$ \\
+        Suma sin signo & \texttt{addu} & R & $R[rd] = R[rs] + R[rt]$ \\
+        Resta & \texttt{sub} & R & $R[rd] = R[rs] - R[rt]$ \\
+        Multiplicación & \texttt{mult} & R & $\{Hi, Lo\} = R[rs] * R[rt]$ \\
+        División & \texttt{div} & R & $Lo = R[rs] / R[rt]; Hi = R[rs] \% R[rt]$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Instrucciones Lógicas}
+Utilizadas para manipulación de bits. Son esenciales para enmascaramiento y operaciones booleanas.
+
+\begin{table}[H]
+    \centering
+    \caption{Instrucciones Lógicas}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{@{}l l l l@{}}
+        \toprule
+        \textbf{Nombre} & \textbf{Mnemónico} & \textbf{Fmt} & \textbf{Operación} \\
+        \midrule
+        And & \texttt{and} & R & $R[rd] = R[rs] \ \& \ R[rt]$ \\
+        Or & \texttt{or} & R & $R[rd] = R[rs] \ | \ R[rt]$ \\
+        Nor & \texttt{nor} & R & $R[rd] = \sim(R[rs] \ | \ R[rt])$ \\
+        And inmediato & \texttt{andi} & I & $R[rt] = R[rs] \ \& \ ZeroExt(Inm)$ \\
+        Despl. Izquierda & \texttt{sll} & R & $R[rd] = R[rt] \ll shamt$ \\
+        Despl. Derecha & \texttt{srl} & R & $R[rd] = R[rt] \gg shamt$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Transferencia de Datos (Memoria)}
+MIPS es una arquitectura \textit{Load/Store}, lo que significa que solo estas instrucciones pueden acceder a la memoria RAM.
+
+\begin{table}[H]
+    \centering
+    \caption{Carga y Almacenamiento}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{@{}l l l l@{}}
+        \toprule
+        \textbf{Nombre} & \textbf{Mnemónico} & \textbf{Fmt} & \textbf{Operación} \\
+        \midrule
+        Carga palabra & \texttt{lw} & I & $R[rt] = M[R[rs] + ExtSigno(Inm)]$ \\
+        Almacena palabra & \texttt{sw} & I & $M[R[rs] + ExtSigno(Inm)] = R[rt]$ \\
+        Carga byte & \texttt{lb} & I & $R[rt] = ExtSigno(M[R[rs] + Inm])$ \\
+        Almacena byte & \texttt{sb} & I & $M[R[rs] + Inm] = R[rt](7:0)$ \\
+        Carga sup. inm. & \texttt{lui} & I & $R[rt] = \{Inm, 16'b0\}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Control de Flujo (Saltos)}
+Permiten alterar la secuencia de ejecución, vitales para bucles (loops) y condicionales (if/else).
+
+\begin{table}[H]
+    \centering
+    \caption{Saltos Condicionales e Incondicionales}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{@{}l l l l@{}}
+        \toprule
+        \textbf{Nombre} & \textbf{Mnemónico} & \textbf{Fmt} & \textbf{Descripción} \\
+        \midrule
+        Salto si igual & \texttt{beq} & I & Si $(R[rs] == R[rt])$ ir a PC + 4 + Dir \\
+        Salto si distinto & \texttt{bne} & I & Si $(R[rs] != R[rt])$ ir a PC + 4 + Dir \\
+        Salto incond. & \texttt{j} & J & PC = Dirección Salto \\
+        Saltar y enlazar & \texttt{jal} & J & $R[31] = PC + 8$; PC = DirSalto \\
+        Salto registro & \texttt{jr} & R & $PC = R[rs]$ \\
+        Fijar si menor & \texttt{slt} & R & $R[rd] = (R[rs] < R[rt]) ? 1 : 0$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Registros Principales}
+La arquitectura define 32 registros de propósito general con convenciones de uso específicas para preservar la compatibilidad entre llamadas a funciones.
+
+\begin{itemize}
+    \item \textbf{\$zero (0):} Constante 0. No se puede sobrescribir.
+    \item \textbf{\$v0 - \$v1 (2-3):} Valores de retorno de funciones.
+    \item \textbf{\$a0 - \$a3 (4-7):} Argumentos de funciones.
+    \item \textbf{\$t0 - \$t9:} Registros temporales (no se preservan en llamadas).
+    \item \textbf{\$s0 - \$s7:} Registros salvados (se preservan en llamadas).
+    \item \textbf{\$gp (28):} Puntero global.
+    \item \textbf{\$sp (29):} Puntero de pila (Stack Pointer).
+    \item \textbf{\$ra (31):} Dirección de retorno (Return Address).
+\end{itemize}
+
+\end{document}
