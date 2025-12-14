@@ -1,0 +1,140 @@
+\documentclass[12pt, a4paper]{article}
+
+% Paquetes de configuración
+\usepackage[utf8]{inputenc}     % Codificación de caracteres
+\usepackage[spanish]{babel}     % Idioma español
+\usepackage{geometry}           % Márgenes
+\usepackage{amsmath}            % Fórmulas matemáticas avanzadas
+\usepackage{amsfonts}           % Fuentes matemáticas
+\usepackage{booktabs}           % Tablas profesionales
+\usepackage{graphicx}           % Manejo de imágenes
+\usepackage{float}              % Posicionamiento de tablas/figuras
+\usepackage{parskip}            % Espaciado entre párrafos
+
+
+\geometry{
+    top=2.5cm,
+    bottom=2.5cm,
+    left=2.5cm,
+    right=2.5cm
+}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    
+    {\Large \textbf{Universidad de Carabobo}}\\[0.5cm]
+    {\large Computación}\\[2.5cm]
+    
+    {\Huge \textbf{Prestaciones de la CPU}}\\[0.5cm]
+    {\large Métricas, Fórmulas Fundamentales y la Ecuación Clásica}\\[2.5cm]
+    
+    \textbf{Materia:}\\
+    Arquitectura del Computador\\[1.5cm]
+    
+    \textbf{Elaborado por:}\\
+    Alessandro Ocanto\\
+    C.I: 31.467.550\\[2.5cm]
+    
+    \vfill
+    
+    {\large \today}
+\end{titlepage}
+
+
+\section{Introducción}
+La evaluación de las prestaciones (performance) es un pilar fundamental en la arquitectura de computadores. Para diseñadores y usuarios, no basta con que un sistema funcione; debe hacerlo de manera eficiente. 
+
+Aunque existen diversas métricas, la medida base más objetiva es el \textbf{tiempo de ejecución}. Este documento formaliza las relaciones matemáticas entre el tiempo de respuesta, la frecuencia de reloj, los ciclos de ejecución y el conteo de instrucciones. Estas fórmulas permiten cuantificar cuánto más rápida es una máquina respecto a otra y entender cómo las decisiones de diseño (como el repertorio de instrucciones) impactan en el rendimiento final.
+
+\newpage
+
+
+\section{Prestaciones Relativas y Tiempo de Ejecución}
+
+Para maximizar las prestaciones, el objetivo principal es minimizar el tiempo de ejecución. Por definición, las prestaciones son inversamente proporcionales al tiempo de ejecución.
+
+\begin{equation}
+    \text{Prestaciones}_X = \frac{1}{\text{Tiempo de ejecución}_X}
+\end{equation}
+
+Cuando comparamos dos computadores, X e Y, decimos que "X es más rápido que Y" si las prestaciones de X son mayores. Para cuantificar esta diferencia, utilizamos la relación "X es $n$ veces más rápida que Y":
+
+\begin{equation}
+    \frac{\text{Prestaciones}_X}{\text{Prestaciones}_Y} = n
+\end{equation}
+
+Sustituyendo la definición de prestaciones, obtenemos la relación fundamental para comparar tiempos:
+
+\begin{equation}
+    \frac{\text{Tiempo de ejecución}_Y}{\text{Tiempo de ejecución}_X} = n
+\end{equation}
+
+Esto implica que si el computador X es $n$ veces más rápido, tardará $n$ veces menos tiempo en ejecutar el mismo programa que el computador Y.
+
+
+\section{Prestaciones de la CPU y sus Factores}
+
+La métrica más básica para el hardware es el ciclo de reloj. Un programa requiere una cantidad determinada de ciclos para completarse. Podemos expresar el tiempo de ejecución de la CPU relacionando los ciclos con la duración de cada uno.
+
+
+\subsection{Fórmulas Básicas del Tiempo de CPU}
+
+\begin{equation}
+    \text{Tiempo CPU} = \text{Ciclos de reloj CPU} \times \text{Tiempo del ciclo de reloj}
+\end{equation}
+
+Alternativamente, dado que la frecuencia de reloj ($f$) es la inversa del tiempo de ciclo ($T$), es decir $f = 1/T$, podemos expresar la fórmula como:
+
+\begin{equation}
+    \text{Tiempo CPU} = \frac{\text{Ciclos de reloj CPU}}{\text{Frecuencia de reloj}}
+\end{equation}
+\newpage
+
+\subsection{Implicaciones de Diseño}
+Estas ecuaciones ponen de manifiesto que un diseñador de hardware tiene dos vías principales para mejorar las prestaciones:
+\begin{itemize}
+    \item Reducir la longitud del ciclo de reloj (aumentar la frecuencia).
+    \item Reducir el número total de ciclos requeridos para un programa.
+\end{itemize}
+Existe a menudo un compromiso de diseño: técnicas que reducen el número de ciclos pueden, inadvertidamente, aumentar la longitud del ciclo o viceversa.
+
+
+\section{La Ecuación Clásica de las Prestaciones}
+
+La mayoría de los computadores ejecutan instrucciones que pueden tardar diferentes cantidades de tiempo. Para capturar este comportamiento, introducimos dos conceptos nuevos:
+
+\begin{enumerate}
+    \item \textbf{Número de Instrucciones (IC):} La cantidad total de instrucciones ejecutadas por el programa.
+    \item \textbf{CPI (Cycles Per Instruction):} El número promedio de ciclos de reloj necesarios para ejecutar una instrucción.
+\end{enumerate}
+
+\subsection{Ecuación General}
+Al expandir el total de ciclos como $IC \times CPI$, obtenemos la ecuación clásica:
+
+\begin{equation}
+    \text{Tiempo de ejecución} = \text{Nº Instrucciones} \times \text{CPI} \times \text{Tiempo de ciclo}
+\end{equation}
+
+O en función de la frecuencia:
+
+\begin{equation}
+    \text{Tiempo de ejecución} = \frac{\text{Nº Instrucciones} \times \text{CPI}}{\text{Frecuencia de reloj}}
+\end{equation}
+
+
+
+\subsection{Cálculo del CPI Promedio}
+Cuando un programa contiene diferentes tipos de instrucciones (por ejemplo, aritméticas, de carga/almacenamiento, saltos), cada tipo puede tener un CPI distinto. El CPI global se calcula como un promedio ponderado:
+
+\begin{equation}
+    \text{Ciclos CPU} = \sum_{i=1}^{n} (\text{CPI}_i \times \text{C}_i)
+\end{equation}
+
+Donde $\text{CPI}_i$ es el ciclos por instrucción para la clase $i$, y $\text{C}_i$ es el número de veces que se ejecuta esa instrucción.
+
+Esta descomposición permite a los diseñadores de compiladores y hardware evaluar comparaciones complejas. Por ejemplo, una secuencia de código con más instrucciones podría ser más rápida si utiliza instrucciones con un CPI mucho menor.
+
+\end{document}
