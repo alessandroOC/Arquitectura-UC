@@ -1,0 +1,128 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{listings}
+
+\usepackage{graphicx}
+
+
+
+\title{Informe I (Arquitectura del Computador)}
+\author{Jesus Contreras (C.I: 31.021.750)\\Alessandro Ocanto (C.I:31.467.550)}
+\date{Febrero 2026}
+
+\begin{document}
+	
+	\maketitle
+	
+	\section{Implementaciones en MIPS32}
+	
+
+	\subsection{¿Cómo se implementa la recursividad en MIPS32? ¿Qué papel cumple la pila (sp)?}
+	En MIPS32, la recursividad se implementa utilizando la pila (apuntada por el registro sp) para guardar el contexto de cada llamada. En el código proporcionado, podemos observar:
+	
+	\begin{itemize}
+		\item Al inicio de paridad\_recursiva, se reservan 8 bytes en la pila: subi \$sp,\$sp, 8
+		\item Se guardan el registro de retorno \$ra y el argumento \$a0 en la pila: sw \$ra, 4(\$sp) y sw \$a0, 0(\$sp)
+		\item Esto permite que después de la llamada recursiva, se puedan restaurar estos valores: lw \$a0, 0(\$sp) y lw \$ra, 4(\$sp)
+		\item Finalmente se libera el espacio de pila: addi \$sp, \$sp, 8
+	\end{itemize}
+	
+	La pila es fundamental porque cada llamada recursiva tiene su propio conjunto de variables locales y dirección de retorno. Sin ella, no sería posible mantener la independencia de cada nivel recursivo.
+	
+	\subsection{¿Qué riesgos de desbordamiento existen? ¿Cómo mitigarlos?}
+	El principal riesgo es el stack overflow (desbordamiento de pila), que ocurre cuando:
+	\begin{itemize}
+		\item La profundidad de la recursión es muy grande (ej. n = 100000)
+		\item Cada llamada consume 8 bytes en la pila, por lo que para n=10000 se usarían 80KB aproximadamente
+		\item En MARS, la pila tiene un tamaño limitado (típicamente 1MB)
+	\end{itemize}
+	
+	Para mitigarlo:
+	\begin{itemize}
+		\item Usar enfoques iterativos cuando se prevean números grandes
+		\item Verificar que los casos base estén bien definidos para evitar recursión infinita
+		\item En sistemas críticos, calcular el máximo de llamadas posibles y dimensionar la pila adecuadamente
+		\item Implementar técnicas como recursión de cola (tail recursion) cuando sea posible
+	\end{itemize}
+	
+	\subsection{¿Qué diferencias encontraste entre una implementación iterativa y una recursiva en cuanto al uso de memoria y registros?}
+	\begin{itemize}
+		\item \textbf{Uso de memoria:} 
+		\begin{itemize}
+			\item Recursiva: Utiliza la pila dinámicamente. Cada llamada consume 8 bytes adicionales.
+			\item Iterativa: No usa memoria dinámica. Solo utiliza registros (\$t0, \$t1, \$t2) y una variable en \$s0.
+		\end{itemize}
+		\item \textbf{Registros:}
+		\begin{itemize}
+			\item Recursiva: Requiere guardar y restaurar \$ra y \$a0 constantemente. Hay mayor movimiento de datos entre registros y memoria.
+			\item Iterativa: Todo el procesamiento se hace con registros temporales. No hay acceso a memoria más allá de la inicial.
+		\end{itemize}
+	\end{itemize}
+	
+	\subsection{¿Qué diferencias encontraste entre los ejemplos académicos del libro y un ejercicio completo y operativo en MIPS32?}
+	Los ejemplos académicos suelen presentar:
+	\begin{itemize}
+		\item Fragmentos de código aislados y perfectamente comentados
+		\item Suposiciones de que los datos ya están en registros
+		\item Omisión de la interacción con el usuario
+	\end{itemize}
+	
+	Un ejercicio completo como este implica:
+	\begin{itemize}
+		\item Manejo de entrada/salida con syscalls (imprimir mensajes, leer enteros)
+		\item Gestión correcta de la pila en funciones no triviales
+		\item Preservación de registros según las convenciones de MIPS
+		\item Pruebas con distintos valores y casos límite
+		\item Depuración real en simuladores (MARS) donde se detectan errores de desbordamiento, uso incorrecto de registros, etc.
+	\end{itemize}
+	
+	\subsection{Elaborar un tutorial de la ejecución paso a paso en MARS}
+	\begin{enumerate}
+		\item \textbf{Abrir MARS} y cargar el archivo \texttt{paridad recursiva.asm} (o el iterativo).
+		\item \textbf{Ensamblar} el código: Run $\rightarrow$ Assemble (F3).
+		\item En la pestaña Execute, observar el código ensamblado y los segmentos de datos.
+		\item \textbf{Establecer breakpoints:}
+		\begin{itemize}
+			\item En la línea jal paridad\_recursiva (para ver la primera llamada)
+			\item En la línea subi \$a0, \$a0,1 (para ver cada llamada recursiva)
+		\end{itemize}
+		\item \textbf{Ejecutar:} Run $\rightarrow$ Go (F5) e ingresar un número pequeño (ej. 3).
+		\item Usar Single Step (F7) para avanzar instrucción por instrucción.
+		\item \textbf{Observar:}
+		\begin{itemize}
+			\item Cómo cambia \$sp (stack pointer) en cada llamada
+			\item Los valores guardados en la pila (ventana Data Segment)
+			\item El registro \$ra antes y después de jal
+			\item El resultado final en \$v0
+		\end{itemize}
+		\item Para la versión iterativa, observar el bucle for y cómo cambian \$t0 y \$t1.
+	\end{enumerate}
+	
+	\subsection{Justificar la elección del enfoque (iterativo o recursivo) según eficiencia y claridad en MIPS}
+	\begin{itemize}
+		\item \textbf{Enfoque recursivo:}
+		\begin{itemize}
+			\item Claridad: Muy claro conceptualmente, refleja directamente la definición matemática paridad(n) = 1 - paridad(n-1).
+			\item Eficiencia: Baja. Cada llamada implica overhead de pila (8 bytes) y acceso a memoria. Para n=1000, se realizan 1000 llamadas y se usan 8KB de pila.
+			\item Riesgo: Desbordamiento para n grandes.
+		\end{itemize}
+		\item \textbf{Enfoque iterativo:}
+		\begin{itemize}
+			\item Claridad: También claro, aunque la lógica de alternancia (result = 1 - result) puede no ser intuitiva a primera vista.
+			\item Eficiencia: Alta. Usa solo registros, sin acceso a memoria. Realiza exactamente n iteraciones con operaciones simples.
+			\item Robustez: No hay riesgo de desbordamiento de pila.
+		\end{itemize}
+	\end{itemize}
+	
+	\textbf{Conclusión:} Para este problema específico, el enfoque \textbf{iterativo es superior} en eficiencia y seguridad, manteniendo una claridad aceptable. El recursivo se justifica principalmente con fines didácticos para aprender manejo de pila y recursividad en ensamblador.
+	
+	\subsection{Análisis y Discusión de los Resultados}
+	\begin{itemize}
+		\item Ambos algoritmos producen el mismo resultado para cualquier entrada positiva. El recursivo implementa correctamente la fórmula, mientras que el iterativo simula el mismo comportamiento mediante un bucle.
+		\item \textbf{Rendimiento:} Al probar con números grandes (ej. n=10000), el recursivo puede generar desbordamiento de pila en MARS, mientras que el iterativo lo maneja sin problemas.
+		\item \textbf{Depuración:} La versión recursiva es más difícil de depurar debido al gran número de llamadas y la gestión de pila. La versión iterativa permite seguir fácilmente el flujo del programa.
+		\item \textbf{Uso de registros:} El recursivo usa \$a0, \$ra y \$sp intensivamente; el iterativo usa \$t0, \$t1, \$t2 y \$s0. El iterativo respeta mejor la convención de uso de registros en MIPS.
+	\end{itemize}
+	
+\end{document}

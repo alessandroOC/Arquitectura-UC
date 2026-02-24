@@ -1,0 +1,117 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{hyperref}
+
+\geometry{margin=1in}
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+
+\title{Informe II (Arquitectura del Computador)}
+\author{Jesus Contreras (C.I: 31.021.750)\\Alessandro Ocanto (C.I:31.467.550)}
+\date{Febrero 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{¿Qué diferencias existen entre registros temporales (\$t0--\$t9) y registros guardados (\$s0--\$s7) y cómo se aplicó esta distinción en la práctica?}
+\begin{itemize}
+    \item Los registros temporales (\$t0--\$t9) se usan para valores de uso breve y los registros guardados (\$s0--\$s7) se usan para conservar los valores entre funciones.
+    \\En el algoritmo de bubble sort, los registros temporales \$t0--\$t2 son usados para variables internas mientras que los registros guardados \$s0--\$s2 se usan para valores que van a persistir en el algoritmo.
+\end{itemize}
+
+\section{¿Qué diferencias existen entre los registros \$a0–\$a3, \$v0–\$v1, \$ra y cómo se aplicó esta distinción en la práctica?}
+
+\begin{itemize}
+     \item los registros \$a0--\$a3 se utilizan cómo parámetros de entrada, en cambio, los registros \$v0--\$v1 se usan cómo salida de funciones y \$ra es para indicar la dirección de retorno.\\ 
+   
+   \item En la práctica las entradas para la impresión se pasó por \$a0 y se recibió resultado por \$v0. \$ra se usó en llamadas a funciones.
+\end{itemize}
+
+\section {¿Cómo afecta el uso de registros frente a memoria en el rendimiento de los algoritmos 
+de ordenamiento implementados?}
+\begin{itemize}
+    \item Los registros se usan para comparar e intercambiar elementos eficientemente permitiendo mayor velocidad y evitando accesos lentos a memoria a diferencia de cuándo se hace el algoritmo directamente desde la memoria lo cual produce latencia y el programa termina siendo menos eficiente.
+\end{itemize}
+
+\section{¿Qué impacto tiene el uso de estructuras de control (bucles anidados, saltos) en la 
+eficiencia de los algoritmos en MIPS32?}
+\begin{itemize}
+    \item Los bucles anidados aumentan el número de instrucciones haciendo la ejecución mas lenta y con el uso de saltos eficientes se puede optimizar el algoritmo moviendonos hacia distintos procedimientos dependiendo de cómo se vaya desarrollando la ejecución del programa sin tener que ejecutar lineas de código innecesarias que suelen ser frecuentes en los bucles anidados.
+\end{itemize}
+
+\section{¿Cuáles son las diferencias de complejidad computacional entre el algoritmo Quick Sort 
+y el algoritmo alternativo? ¿Qué implicaciones tiene esto para la implementación en un 
+entorno MIPS32?}
+\begin{itemize}
+    \item Ambos algoritmos son de orden \textbf{(n\textsuperscript{2})} en el peor caso debido a que utilizan dos ciclos cada uno, sin embargo, Quicksort requiere más gestión de pila y llamadas a funciones, mientras que el de Bubble Sort es más lineal en su estructura pero ejecuta muchas más comparaciones.
+    
+\end{itemize} 
+
+\section{¿Cuáles son las fases del ciclo de ejecución de instrucciones en la arquitectura MIPS32 
+(camino de datos)? ¿En qué consisten?}
+\begin{enumerate}
+    \item Fetch: Se obtiene la instrucción desde la memoria.
+    \item Decode: Se decodifica y se leen los registros fuente.
+    \item Execute: Se hace la operación en la ALU.
+    \item Memory Access: Acceso a la memoria si es que aplica.
+    \item Write-back: Se escribe el registro destino.
+\end{enumerate}
+
+\section{¿Qué tipo de instrucciones se usaron predominantemente en la práctica (R, I, J) y por 
+qué?}
+\begin{itemize}
+    \item Tipo R: operaciones aritméticas y comparaciones.
+    \item Tipo I: acceso a memoria.
+    \item Tipo J: saltos en bucles. 
+    \\
+    En ambos algoritmos se ve más que todo operaciones tipo R debido a las constantes comparaciones e intercambios para ordenar los vectores usando operaciones aritméticas.
+\end{itemize}
+
+\section{¿Cómo se ve afectado el rendimiento si se abusa del uso de instrucciones de salto (j, beq, 
+bne) en lugar de usar estructuras lineales?}
+\begin{itemize}
+    \item El uso de muchos saltos pueden volver confuso, fragmentar el flujo y reducir la eficiencia del algoritmo, a diferencia de usar estructuras secuenciales que mejoran el rendimiento y nos dan un resultado más ordenado y práctico.
+\end{itemize}
+
+\section{¿Qué ventajas ofrece el modelo RISC de MIPS en la implementación de algoritmos 
+básicos como los de ordenamiento?}
+\begin{itemize}
+    \item Las ventajas que ofrece son un diseño simple que permite una ejecución rápida de instrucciones básicas, ideal para algoritmos con operaciones repetitivas como ordenamientos.
+\end{itemize}
+
+\section{¿Cómo se usó el modo de ejecución paso a paso (Step, Step Into) en MARS para verificar 
+la correcta ejecución del algoritmo?}
+\begin{itemize}
+    \item Se utilizo para verificar linea por linea el código de nuestros algoritmos, nos ayudó a entender mejor los recorridos mientras usábamos los saltos, poder detectar específicamente dónde se encontraban los errores, ver los cambios de valores en los registros en cada paso y el intercambio de elementos en los arreglos verificando que funcionen correctamente.
+\end{itemize}
+
+\section{¿Qué herramienta de MARS fue más útil para observar el contenido de los registros y 
+detectar errores lógicos?}
+\begin{itemize}
+    \item El terminal o procesador porque nos indicaba dónde se encontraban los errores que teníamos en los algoritmos.
+\end{itemize}
+
+\section{¿Cómo puede visualizarse en MARS el camino de datos para una instrucción tipo R?
+(por ejemplo: add)}
+\begin{itemize}
+    \item Uso de ALU para sumar registros y guardar el resultado.
+    \item MARS muestra cómo fluyen los datos dentro del procesador.
+\end{itemize}
+
+\section{¿Cómo puede visualizarse en MARS el camino de datos para una instrucción tipo I? (por 
+ejemplo: lw)}
+\begin{itemize}
+    \item Se usa base + desplazamiento para acceder a memoria.
+    \item El contenido se transfiere a un registro destino.
+\end{itemize}
+
+\section{Justificar la elección del algoritmo alternativo}
+\begin{itemize}
+    \item Optamos por utilizar el algoritmo de Bubble Sort porque es simple e intuitivo, tambien por su estructura predecible por asi decirlo ya que no requiere de recursividad ni una gestión compleja de pila a comparación del de Quicksort por poner un ejemplo.
+\end{itemize}
+
+\end{document}
