@@ -1,0 +1,861 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{geometry}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{longtable}
+
+% Configuración de márgenes
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+
+% Configuración de colores para código
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Configuración de listings para C++
+\lstdefinestyle{cppstyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{black}
+}
+
+\lstset{style=cppstyle}
+
+
+\begin{document}
+% PORTADA PERSONALIZADA
+\begin{titlepage}
+\centering
+
+\vspace*{1cm}
+
+{\scshape\LARGE Universidad de Carabobo \par}
+\vspace{0.5cm}
+
+
+{\huge\bfseries Simulador de Caché\par}
+\vspace{0.5cm}
+{\Large Correspondencia Directa y Asociativa por Vías\par}
+\vspace{0.3cm}
+{\large Análisis de Rendimiento y Comparativa de Configuraciones\par}
+
+\vspace{2cm}
+
+\begin{tabular}{|p{3.5cm}|p{8cm}|}
+\hline
+\multicolumn{2}{|c|}{\textbf{Datos Académicos}} \\ \hline
+\textbf{Asignatura} & Arquitectura de Computadores \\ \hline
+\end{tabular}
+
+\vspace{1.5cm}
+
+\begin{tabular}{|p{3.5cm}|p{4cm}|p{4cm}|}
+\hline
+\multicolumn{3}{|c|}{\textbf{Equipo de Trabajo}} \\ \hline
+\textbf{Nombre} & \textbf{Cedula} & \textbf{Email} \\ \hline
+Alessandro Ocanto&  31467550& maria.gonzalez@edu.uy \\ \hline
+Abraham Quintero & 30958868 & abraham1gamer@gmail.com \\ \hline
+
+\end{tabular}
+
+\vfill
+{\large \today}
+
+\end{titlepage}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introducción}
+
+\subsection{Motivación}
+
+La memoria caché es uno de los componentes más críticos en la arquitectura de computadores modernos. Como señalan Patterson y Hennessy en \textit{Estructura y Diseño de Computadores}~\cite{patterson2011}, el principio de localidad —tanto temporal como espacial— es fundamental para el funcionamiento eficiente de las jerarquías de memoria. Sin una caché adecuadamente diseñada, los procesadores modernos, que pueden ejecutar miles de millones de instrucciones por segundo, pasarían la mayor parte de su tiempo esperando datos de la memoria principal.
+
+La brecha entre la velocidad del procesador y la memoria principal ha crecido dramáticamente en las últimas décadas. Mientras que los procesadores han experimentado mejoras exponenciales en frecuencia de reloj, la latencia de la DRAM ha mejorado a un ritmo mucho más lento. Esta disparidad ha hecho que las memorias caché sean cada vez más importantes para el rendimiento general del sistema.
+
+\begin{table}[H]
+\centering
+\caption{Brecha procesador-memoria a lo largo del tiempo}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Año} & \textbf{Procesador} & \textbf{Frecuencia} & \textbf{Latencia DRAM} \\
+\hline
+1985 & Intel 80386 & 16 MHz & 150 ns \\
+1995 & Intel Pentium Pro & 200 MHz & 60 ns \\
+2005 & Intel Pentium 4 & 3.6 GHz & 50 ns \\
+2015 & Intel Core i7 & 4.0 GHz & 40 ns \\
+2024 & AMD Ryzen 9 & 5.7 GHz & 35 ns \\
+\hline
+\end{tabular}
+\label{tab:gap}
+\end{table}
+
+\subsection{Objetivos del Proyecto}
+
+\begin{enumerate}
+    \item Implementar un simulador de caché configurable para diferentes niveles de asociatividad
+    \item Analizar el impacto del mapeo directo frente al asociativo por vías
+    \item Evaluar el efecto del prefetching en patrones de acceso secuencial
+    \item Comparar cuantitativamente las tasas de aciertos y fallos entre configuraciones
+    \item Demostrar los principios de localidad espacial y temporal mediante experimentos controlados
+\end{enumerate}
+
+\section{Fundamentos Teóricos}
+\label{sec:fundamentos}
+
+\subsection{Principio de Localidad}
+
+El principio de localidad es la base del funcionamiento de las memorias caché. Patterson y Hennessy~\cite{patterson2011} establecen que:
+
+\begin{quote}
+\textit{"Los programas acceden a una parte relativamente pequeña del espacio de direcciones en un determinado instante."}
+\end{quote}
+
+Existen dos tipos de localidad:
+
+\begin{table}[H]
+\centering
+\caption{Tipos de localidad}
+\begin{tabular}{|p{3cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Tipo} & \textbf{Definición} & \textbf{Ejemplo} \\
+\hline
+Localidad Temporal & Si se accede a una dirección, es probable que se acceda de nuevo pronto & Lazos, variables contadoras, acumuladores \\
+\hline
+Localidad Espacial & Si se accede a una dirección, es probable que se accedan a direcciones cercanas & Acceso secuencial a arrays, ejecución lineal de código \\
+\hline
+\end{tabular}
+\label{tab:localidad}
+\end{table}
+
+\subsection{Jerarquía de Memoria}
+
+La jerarquía de memoria aprovecha el principio de localidad para ofrecer la ilusión de una memoria grande y rápida. A continuación se muestra la organización típica:
+
+\begin{verbatim}
+Nivel 1: CPU (registros)          - Tamaño: ~1 KB      - Tiempo: ~0.3 ns
+Nivel 2: Cache L1                 - Tamaño: 32-64 KB   - Tiempo: ~1 ns
+Nivel 3: Cache L2                 - Tamaño: 256 KB-8MB - Tiempo: ~10 ns
+Nivel 4: Memoria DRAM             - Tamaño: 4-64 GB    - Tiempo: ~100 ns
+Nivel 5: Disco                    - Tamaño: 1-20 TB    - Tiempo: ~10 ms
+\end{verbatim}
+\captionof{figure}{Jerarquía de memoria típica (tiempos aproximados en 2024)}
+\label{fig:jerarquia}
+
+\subsection{Organización de la Caché}
+
+\subsubsection{Caché de Correspondencia Directa}
+
+En una caché de correspondencia directa, cada bloque de memoria principal tiene \textbf{una única ubicación posible} en la caché. La posición viene determinada por:
+
+\begin{equation}
+\boxed{\text{Índice} = (\text{Dirección\_bloque}) \mod (\text{Número\_de\_bloques\_en\_cache})}
+\end{equation}
+
+\begin{itemize}
+    \item \textbf{Ventaja:} Implementación simple y rápida, menor consumo energético
+    \item \textbf{Desventaja:} Susceptible a conflictos cuando múltiples direcciones acceden al mismo índice
+\end{itemize}
+
+\subsubsection{Caché Asociativa por Conjuntos}
+
+En una caché asociativa por conjuntos de $N$ vías, cada bloque de memoria puede ubicarse en \textbf{cualquiera de las $N$ posiciones} de un conjunto determinado por:
+
+\begin{equation}
+\boxed{\text{Conjunto} = (\text{Dirección\_bloque}) \mod (\text{Número\_de\_conjuntos})}
+\end{equation}
+
+\begin{itemize}
+    \item \textbf{Ventaja:} Reduce los fallos de conflicto, mejor tasa de aciertos
+    \item \textbf{Desventaja:} Mayor complejidad hardware, mayor tiempo de acceso, mayor consumo energético
+\end{itemize}
+
+\subsection{Estructura de la Dirección}
+
+La dirección de memoria se descompone en tres campos:
+
+\begin{verbatim}
++-------------------+-------------------+-------------------+
+|       Tag         |      Índice       |   Desplazamiento  |
+|    (bits altos)   |   (bits medios)   |    (bits bajos)   |
++-------------------+-------------------+-------------------+
+\end{verbatim}
+\captionof{figure}{Descomposición de la dirección de memoria}
+\label{fig:dir}
+
+\begin{itemize}
+    \item \textbf{Tag (Etiqueta):} Identifica qué bloque de memoria está almacenado
+    \item \textbf{Índice:} Selecciona el conjunto/camino a examinar
+    \item \textbf{Desplazamiento:} Selecciona la palabra dentro del bloque
+\end{itemize}
+
+\subsection{Modelo de las Tres C (3Cs)}
+
+Patterson y Hennessy~\cite{patterson2011} clasifican los fallos de caché en tres categorías fundamentales:
+
+\begin{table}[H]
+\centering
+\caption{Modelo de las 3 Cs}
+\begin{tabular}{|p{3cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Tipo} & \textbf{Causa} & \textbf{Solución} \\
+\hline
+Compulsorios (cold) & Primer acceso al bloque & Aumentar tamaño de bloque \\
+\hline
+Capacidad & Caché insuficiente para el conjunto de trabajo & Aumentar tamaño de caché \\
+\hline
+Conflicto & Colisiones en el mapeo & Aumentar asociatividad \\
+\hline
+\end{tabular}
+\label{tab:3cs}
+\end{table}
+
+\subsection{Políticas de Reemplazo}
+
+\begin{table}[H]
+\centering
+\caption{Comparación de políticas de reemplazo}
+\begin{tabular}{|p{3cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Política} & \textbf{Descripción} & \textbf{Ventajas/Desventajas} \\
+\hline
+LRU (Least Recently Used) & Reemplaza el bloque no usado por más tiempo & Buena correlación con localidad temporal, costosa de implementar \\
+\hline
+FIFO (First In First Out) & Reemplaza el bloque más antiguo & Simple, pero no considera frecuencia de uso \\
+\hline
+Aleatorio & Selecciona un bloque aleatorio & Muy simple, evita comportamientos patológicos \\
+\hline
+\end{tabular}
+\label{tab:reemplazo}
+\end{table}
+
+\subsection{Políticas de Escritura}
+
+\begin{table}[H]
+\centering
+\caption{Políticas de escritura en caché}
+\begin{tabular}{|p{3cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Política} & \textbf{Descripción} & \textbf{Características} \\
+\hline
+Write-Through & Escribe simultáneamente en caché y memoria & Consistencia garantizada, mayor tráfico de bus \\
+\hline
+Write-Back & Escribe solo en caché, marca bloque como sucio & Menor tráfico, necesita bit de consistencia \\
+\hline
+Write-Allocate & En fallo de escritura, carga el bloque en caché & Aprovecha futuros accesos \\
+\hline
+No-Write-Allocate & En fallo de escritura, escribe directamente en memoria & Evita cargas innecesarias \\
+\hline
+\end{tabular}
+\label{tab:escritura}
+\end{table}
+
+\subsection{Técnica de Prefetching}
+
+El prefetching consiste en anticipar la carga de datos a la caché antes de que sean solicitados explícitamente. Esta técnica explota la localidad espacial para reducir la penalización por fallos.
+
+\begin{equation}
+\boxed{\text{Dirección\_prefetch} = \text{Dirección\_actual} + \text{Tamaño\_bloque}}
+\end{equation}
+
+\subsection{Métrica de Rendimiento: AMAT}
+
+El Tiempo Medio de Acceso a Memoria (Average Memory Access Time, AMAT) es la métrica fundamental para evaluar el rendimiento de una jerarquía de caché:
+
+\begin{equation}
+\boxed{\text{AMAT} = \text{Tiempo\_acierto} + \text{Tasa\_fallos} \times \text{Penalización\_fallo}}
+\end{equation}
+
+\section{Implementación del Simulador}
+\label{sec:implementacion}
+
+\subsection{Arquitectura del Software}
+
+El simulador se ha implementado en C++ utilizando la STL (Standard Template Library). La estructura principal es la clase \code{CacheSimulator}:
+
+\begin{lstlisting}[language=C++, caption=Clase principal del simulador, label=lst:main]
+class CacheSimulator {
+private:
+    unsigned int cacheSize;      // Tamaño total de la caché (bytes)
+    unsigned int blockSize;      // Tamaño de bloque (bytes)
+    unsigned int ways;           // Grado de asociatividad
+    unsigned int numSets;        // Número de conjuntos
+    vector<list<CacheLine>> cache; // Estructura de la caché
+    long long hits, misses;      // Contadores de estadísticas
+
+public:
+    CacheSimulator(unsigned int cSize, unsigned int bSize, unsigned int w);
+    bool access(unsigned int address, bool enablePrefetch);
+    void prefetch(unsigned int address);
+    void printFinalStats(string mode);
+};
+\end{lstlisting}
+
+\subsection{Estructura de la Línea de Caché}
+
+\begin{lstlisting}[language=C++, caption=Estructura CacheLine, label=lst:cacheline]
+struct CacheLine {
+    bool valid;           // Bit de validez (indica si la línea contiene datos)
+    unsigned int tag;     // Etiqueta (identificador del bloque)
+    CacheLine(bool v, unsigned int t) : valid(v), tag(t) {}
+};
+\end{lstlisting}
+
+\subsection{Cálculo de Mapeo}
+
+El cálculo de la posición en caché sigue la fórmula estándar presentada en la bibliografía:
+
+\begin{lstlisting}[language=C++, caption=Cálculo de índice y tag, label=lst:calculo]
+unsigned int blockAddr = address / blockSize;      // Dirección de bloque
+unsigned int setIndex = blockAddr % numSets;       // Índice del conjunto
+unsigned int tag = blockAddr / numSets;            // Etiqueta
+\end{lstlisting}
+
+\subsection{Política de Reemplazo LRU}
+
+La política LRU (Least Recently Used) se implementa manteniendo los bloques más recientemente usados al frente de la lista:
+
+\begin{lstlisting}[language=C++, caption=Implementación de LRU, label=lst:lru]
+// Buscar el bloque en el conjunto
+for (auto it = currentSet.begin(); it != currentSet.end(); ++it) {
+    if (it->valid && it->tag == tag) {
+        hits++;
+        found = true;
+        // LRU: mover al frente (MRU)
+        CacheLine foundLine = *it;
+        currentSet.erase(it);
+        currentSet.push_front(foundLine);
+        break;
+    }
+}
+
+if (!found) {
+    misses++;
+    if (currentSet.size() >= (size_t)ways) currentSet.pop_back();
+    currentSet.push_front(CacheLine(true, tag));
+}
+\end{lstlisting}
+
+\subsection{Mecanismo de Prefetching}
+
+\begin{lstlisting}[language=C++, caption=Implementación del prefetching, label=lst:prefetch]
+void prefetch(unsigned int address) {
+    unsigned int nextAddr = address + blockSize;
+    unsigned int blockAddr = nextAddr / blockSize;
+    unsigned int setIndex = blockAddr % numSets;
+    unsigned int tag = blockAddr / numSets;
+    
+    list<CacheLine>& currentSet = cache[setIndex];
+    
+    // Verificar si ya está en caché
+    for (auto it = currentSet.begin(); it != currentSet.end(); ++it) {
+        if (it->valid && it->tag == tag) return;
+    }
+    
+    // Si no está, cargarlo (con reemplazo LRU si es necesario)
+    if (currentSet.size() >= (size_t)ways) currentSet.pop_back();
+    currentSet.push_front(CacheLine(true, tag));
+}
+\end{lstlisting}
+
+\subsection{¿Por qué usar direcciones hexadecimales?}
+
+Las direcciones se representan en hexadecimal (\code{0x100}, \code{0x104}, etc.) por varias razones fundamentales:
+
+\begin{enumerate}
+    \item \textbf{Compactación:} Un dígito hexadecimal representa 4 bits, lo que hace que las direcciones sean mucho más legibles que su equivalente binario:
+    \begin{itemize}
+        \item Binario: \code{0001 0000 0000} (12 caracteres)
+        \item Hexadecimal: \code{0x100} (5 caracteres)
+    \end{itemize}
+    
+    \item \textbf{Alineación natural:} Los tamaños de bloque suelen ser potencias de 2 (16 bytes = $2^4$), lo que hace que las direcciones hexadecimales muestren claramente los límites de bloque:
+    \begin{itemize}
+        \item \code{0x100} a \code{0x10F} → mismo bloque
+        \item \code{0x110} → bloque siguiente
+    \end{itemize}
+    
+    \item \textbf{Conversión sencilla:} La correspondencia entre hexadecimal y binario es directa (4 bits → 1 hex), facilitando la extracción manual de campos (tag, índice, desplazamiento)
+    
+    \item \textbf{Convención estándar:} Los lenguajes de programación (C, C++, Java, Python) y las herramientas de depuración utilizan hexadecimal para direcciones de memoria
+\end{enumerate}
+
+\section{Configuración Experimental}
+\label{sec:experimentos}
+
+\subsection{Parámetros de Simulación}
+
+\begin{table}[H]
+\centering
+\caption{Configuración del hardware simulado}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Parámetro} & \textbf{Valor} \\
+\hline
+Tamaño de caché & 1024 bytes (1 KB) \\
+Tamaño de bloque & 16 bytes \\
+Número de conjuntos (directa) & 64 \\
+Número de conjuntos (2 vías) & 32 \\
+Número de conjuntos (4 vías) & 16 \\
+\hline
+\end{tabular}
+\label{tab:config}
+\end{table}
+
+\subsection{Patrones de Prueba}
+
+Se han diseñado tres patrones de acceso para evaluar diferentes aspectos del comportamiento de la caché:
+
+\subsubsection{Patrón 1: Localidad Espacial}
+
+\begin{verbatim}
+Direcciones: 0x000, 0x004, 0x008, 0x00C, 0x010, 0x014, ..., 0x02C
+\end{verbatim}
+
+Este patrón evalúa la capacidad de la caché para aprovechar la localidad espacial y la efectividad del prefetching en accesos secuenciales.
+
+\subsubsection{Patrón 2: Conflicto}
+
+\begin{verbatim}
+Direcciones: 0x000, 0x400, 0x800, 0x000, 0x400, 0x800, 0x000, 0x400, 0x800
+\end{verbatim}
+
+Este patrón fue diseñado específicamente para crear conflictos de mapeo y demostrar las ventajas de la asociatividad.
+
+\subsubsection{Patrón 3: Reuso de Datos}
+
+\begin{verbatim}
+Direcciones: 0x100, 0x104, 0x108, 0x500, 0x504, 
+             0x100, 0x104, 0x108, 0x500, 0x504
+\end{verbatim}
+
+Este patrón evalúa la localidad temporal y la capacidad de la caché para retener datos entre accesos.
+
+\section{Resultados Experimentales}
+\label{sec:resultados}
+
+\subsection{Patrón 1: Localidad Espacial}
+
+\begin{table}[H]
+\centering
+\caption{Resultados - Patrón de localidad espacial}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Configuración} & \textbf{Hits} & \textbf{Misses} & \textbf{Hit Rate} \\
+\hline
+Mapeo Directo & 9 & 3 & 75.00\% \\
+Asociativo 2 vías & 9 & 3 & 75.00\% \\
+Asociativo 4 vías & 9 & 3 & 75.00\% \\
+Asociativo 4 vías + Prefetch & 11 & 1 & 91.67\% \\
+\hline
+\end{tabular}
+\label{tab:res1}
+\end{table}
+
+\textbf{Análisis:} Con bloque de 16 bytes, las direcciones \code{0x000}, \code{0x004}, \code{0x008}, \code{0x00C} pertenecen al mismo bloque. El primer acceso (\code{0x000}) genera un fallo obligatorio, pero los tres siguientes son aciertos. Este comportamiento demuestra el \textbf{principio de localidad espacial}.
+
+\begin{verbatim}
+Tiempo ->
+Bloque 0x000-0x00F: [MISS] [HIT] [HIT] [HIT]
+Bloque 0x010-0x01F:                 [PF]  [HIT] [HIT] [HIT]
+                                        |
+                                        +-- Prefetch activado
+\end{verbatim}
+\captionof{figure}{Efecto del prefetching en accesos secuenciales}
+\label{fig:prefetch}
+
+\subsection{Patrón 2: Conflicto}
+
+\begin{table}[H]
+\centering
+\caption{Resultados - Patrón de conflicto}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Configuración} & \textbf{Hits} & \textbf{Misses} & \textbf{Hit Rate} \\
+\hline
+Mapeo Directo & 0 & 9 & 0.00\% \\
+Asociativo 2 vías & 0 & 9 & 0.00\% \\
+Asociativo 4 vías & 6 & 3 & 66.67\% \\
+Asociativo 4 vías + Prefetch & 6 & 3 & 66.67\% \\
+\hline
+\end{tabular}
+\label{tab:res2}
+\end{table}
+
+\textbf{Análisis del conflicto:}
+
+\begin{equation}
+\begin{aligned}
+\text{Tamaño bloque} &= 16 \text{ bytes} \\
+\text{Direcciones de bloque} &= 0x00, 0x40, 0x80 \\
+\text{numSets (directa)} &= 1024 / 16 / 1 = 64 \\
+\text{Índice} &= \text{bloque} \mod 64 = 0 \text{ para todas} \\
+\text{numSets (4 vías)} &= 1024 / 16 / 4 = 16 \\
+\text{Conjunto} &= \text{bloque} \mod 16 = 0 \text{ para todas}
+\end{aligned}
+\end{equation}
+
+En mapeo directo, las tres direcciones compiten por el mismo índice, expulsándose mutuamente (0\% aciertos). En la caché de 4 vías, las tres pueden coexistir, logrando aciertos en las iteraciones 4-9.
+
+\subsection{Patrón 3: Reuso de Datos}
+
+\begin{table}[H]
+\centering
+\caption{Resultados - Patrón de reuso}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Configuración} & \textbf{Hits} & \textbf{Misses} & \textbf{Hit Rate} \\
+\hline
+Mapeo Directo & 6 & 4 & 60.00\% \\
+Asociativo 2 vías & 8 & 2 & 80.00\% \\
+Asociativo 4 vías & 8 & 2 & 80.00\% \\
+Asociativo 4 vías + Prefetch & 8 & 2 & 80.00\% \\
+\hline
+\end{tabular}
+\label{tab:res3}
+\end{table}
+
+\textbf{Análisis:} Los primeros 5 accesos son fallos obligatorios (compulsorios). Los últimos 5 deberían ser aciertos si los datos persisten en caché. La caché de mapeo directo falla en \code{0x100} y \code{0x500} en la segunda iteración debido a conflictos, mientras que las cachés asociativas retienen ambos bloques.
+
+\subsection{Resumen Comparativo}
+
+\begin{table}[H]
+\centering
+\caption{Resumen de tasas de aciertos por configuración}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Configuración} & \textbf{Espacial} & \textbf{Conflicto} & \textbf{Reuso} \\
+\hline
+Mapeo Directo & 75.00\% & 0.00\% & 60.00\% \\
+Asociativo 2 vías & 75.00\% & 0.00\% & 80.00\% \\
+Asociativo 4 vías & 75.00\% & 66.67\% & 80.00\% \\
+4 vías + Prefetch & 91.67\% & 66.67\% & 80.00\% \\
+\hline
+\end{tabular}
+\label{tab:resumen}
+\end{table}
+
+\begin{verbatim}
+Hit Rate (%)
+   100 +
+    90 +                         ****
+    80 +              ****  ****  ****
+    70 +        ****  ****  ****  ****
+    60 +  ****  ****  ****  ****  ****
+    50 +  ****  ****  ****  ****  ****
+    40 +  ****  ****  ****  ****  ****
+    30 +  ****  ****  ****  ****  ****
+    20 +  ****  ****  ****  ****  ****
+    10 +  ****  ****  ****  ****  ****
+     0 +----+-----+-----+----------+
+         Dir.  2vias 4vias 4vias+PF
+         
+         ## Espacial  ## Conflicto  ## Reuso
+\end{verbatim}
+\captionof{figure}{Comparativa de tasas de aciertos}
+\label{fig:comparativa}
+
+\section{Análisis y Discusión}
+\label{sec:discusion}
+
+\subsection{Impacto de la Asociatividad}
+
+Los resultados demuestran que aumentar la asociatividad mejora significativamente la tasa de aciertos en patrones de conflicto, pero tiene un impacto limitado en patrones con buena localidad espacial. La caché de 4 vías logra un 66.67\% de aciertos en el patrón de conflicto, frente al 0\% de la caché directa.
+
+\begin{equation}
+\text{Mejora} = \frac{66.67\% - 0\%}{0\%} \times 100\% = \infty \text{ (en este caso)}
+\end{equation}
+
+Sin embargo, este aumento en rendimiento tiene un coste en términos de hardware y tiempo de acceso:
+
+\begin{itemize}
+    \item \textbf{Caché directa:} 1 comparador, acceso más rápido
+    \item \textbf{Caché 4 vías:} 4 comparadores, multiplexor 4:1, mayor consumo
+\end{itemize}
+
+\subsection{Efecto del Prefetching}
+
+El prefetching es altamente efectivo en patrones secuenciales (91.67\% vs 75\%), representando una mejora del 22.2\% en la tasa de aciertos. Sin embargo, no aporta beneficio en patrones de acceso aleatorio o de conflicto, ya que el prefetching asume localidad espacial (el bloque siguiente será solicitado).
+
+\begin{equation}
+\text{Mejora con prefetch} = \frac{91.67 - 75}{75} \times 100\% = 22.2\%
+\end{equation}
+
+\subsection{Clasificación de Fallos (3 Cs)}
+
+Aplicando el modelo de las 3 Cs a los resultados obtenidos:
+
+\begin{table}[H]
+\centering
+\caption{Clasificación de fallos por patrón}
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Patrón} & \textbf{Compulsorios} & \textbf{Capacidad} & \textbf{Conflicto} \\
+\hline
+Localidad Espacial & Altos & Bajos & Muy bajos \\
+Conflicto & Bajos & Bajos & Muy altos (en directa) \\
+Reuso & Medios & Medios & Medios \\
+\hline
+\end{tabular}
+\label{tab:3cs}
+\end{table}
+
+\subsection{Localidad Espacial y Tamaño de Bloque}
+
+El uso de bloques de 16 bytes permite explotar la localidad espacial: un solo fallo carga 4 palabras (16 bytes), beneficiando los accesos a direcciones contiguas. Como señalan Patterson y Hennessy~\cite{patterson2011}:
+
+\begin{quote}
+\textit{"Las caches aprovechan la localidad espacial transmitiendo hacia niveles superiores de la jerarquía bloques de varias palabras que se almacenan en posiciones contiguas de memoria."}
+\end{quote}
+
+\subsection{Interpretación de la Tabla de Seguimiento}
+
+A continuación se muestra la salida del simulador para el patrón de localidad espacial:
+
+\begin{verbatim}
+TABLA DE SEGUIMIENTO PASO A PASO
+Direccion   Directo     Asoc-2      Asoc-4      Asoc-4+PF   
+------------------------------------------------------------
+0x0         MISS        MISS        MISS        MISS        
+0x4         HIT         HIT         HIT         HIT         
+0x8         HIT         HIT         HIT         HIT         
+0xc         HIT         HIT         HIT         HIT         
+0x10        MISS        MISS        MISS        HIT         
+0x14        HIT         HIT         HIT         HIT         
+...
+\end{verbatim}
+
+Se observa que:
+\begin{enumerate}
+    \item El primer acceso a cada bloque siempre es MISS (fallo compulsorio)
+    \item Los accesos siguientes dentro del mismo bloque son HIT (localidad espacial)
+    \item El prefetching convierte el primer acceso al bloque 0x010 en HIT
+\end{enumerate}
+
+\section{Conclusiones}
+\label{sec:conclusiones}
+
+El simulador implementado demuestra exitosamente los conceptos fundamentales de las memorias caché:
+
+\begin{enumerate}
+    \item \textbf{El mapeo directo} es simple pero vulnerable a conflictos
+    \item \textbf{La asociatividad} reduce los fallos de conflicto a costa de mayor complejidad
+    \item \textbf{El prefetching} mejora significativamente el rendimiento en patrones secuenciales
+    \item \textbf{La localidad espacial} es fundamental para la efectividad de la caché
+\end{enumerate}
+
+Las tasas de aciertos obtenidas (0\% a 91.67\%) muestran la importancia de seleccionar la configuración adecuada según el patrón de acceso de la aplicación.
+
+\subsection{Trabajo Futuro}
+
+\begin{itemize}
+    \item Implementar cachés multinivel (L1/L2/L3)
+    \item Agregar política de reemplazo FIFO y aleatoria
+    \item Modelar latencias de acceso para calcular AMAT
+    \item Implementar prefetching adaptativo (stride prediction)
+    \item Interfaz gráfica para visualización del estado de la caché
+    \item Simular diferentes tamaños de bloque y caché
+\end{itemize}
+
+\begin{thebibliography}{9}
+
+\bibitem{patterson2011}
+Patterson, D. A., \& Hennessy, J. L. (2011).
+\textit{Estructura y Diseño de Computadores: La Interfaz Hardware/Software} (4ª ed.).
+Reverté.
+
+\bibitem{hennessy2017}
+Hennessy, J. L., \& Patterson, D. A. (2017).
+\textit{Computer Architecture: A Quantitative Approach} (6th ed.).
+Morgan Kaufmann.
+
+\bibitem{smith1982}
+Smith, A. J. (1982).
+``Cache Memories''.
+\textit{ACM Computing Surveys}, 14(3), 473-530.
+
+\bibitem{amdahl1967}
+Amdahl, G. M. (1967).
+``Validity of the single processor approach to achieving large scale computing capabilities''.
+\textit{AFIPS Conference Proceedings}, 30, 483-485.
+
+\end{thebibliography}
+
+\appendix
+
+\section{Anexo: Código Completo del Simulador}
+
+\begin{lstlisting}[language=C++, caption=Código completo del simulador de caché]
+#include <iostream>
+#include <vector>
+#include <list>
+#include <iomanip>
+#include <fstream>
+#include <string>
+
+using namespace std;
+
+/**
+ * Estructura que representa una línea de caché
+ */
+struct CacheLine {
+    bool valid;           // Bit de validez
+    unsigned int tag;     // Etiqueta
+    CacheLine(bool v, unsigned int t) : valid(v), tag(t) {}
+};
+
+/**
+ * Simulador de caché configurable
+ */
+class CacheSimulator {
+private:
+    unsigned int cacheSize, blockSize, ways, numSets;
+    vector<list<CacheLine>> cache;
+    long long hits, misses;
+
+public:
+    CacheSimulator(unsigned int cSize, unsigned int bSize, unsigned int w) 
+        : cacheSize(cSize), blockSize(bSize), ways(w), hits(0), misses(0) {
+        numSets = cacheSize / (blockSize * ways);
+        cache.resize(numSets);
+    }
+
+    void prefetch(unsigned int address) {
+        unsigned int nextAddr = address + blockSize;
+        unsigned int blockAddr = nextAddr / blockSize;
+        unsigned int setIndex = blockAddr % numSets;
+        unsigned int tag = blockAddr / numSets;
+
+        list<CacheLine>& currentSet = cache[setIndex];
+        
+        for (auto it = currentSet.begin(); it != currentSet.end(); ++it) {
+            if (it->valid && it->tag == tag) return;
+        }
+
+        if (currentSet.size() >= (size_t)ways) currentSet.pop_back();
+        currentSet.push_front(CacheLine(true, tag));
+    }
+
+    bool access(unsigned int address, bool enablePrefetch) {
+        unsigned int blockAddr = address / blockSize;
+        unsigned int setIndex = blockAddr % numSets;
+        unsigned int tag = blockAddr / numSets;
+
+        list<CacheLine>& currentSet = cache[setIndex];
+        bool found = false;
+
+        for (auto it = currentSet.begin(); it != currentSet.end(); ++it) {
+            if (it->valid && it->tag == tag) {
+                hits++;
+                found = true;
+                CacheLine foundLine = *it;
+                currentSet.erase(it);
+                currentSet.push_front(foundLine);
+                break;
+            }
+        }
+
+        if (!found) {
+            misses++;
+            if (currentSet.size() >= (size_t)ways) currentSet.pop_back();
+            currentSet.push_front(CacheLine(true, tag));
+        }
+
+        if (enablePrefetch) prefetch(address);
+        return found;
+    }
+
+    void printFinalStats(string mode) {
+        double total = hits + misses;
+        double hitRate = (total > 0) ? (hits / total) * 100 : 0;
+        
+        cout << left << setw(28) << mode << " | "
+             << "Hits: " << setw(4) << hits << " | "
+             << "Misses: " << setw(4) << misses << " | "
+             << "Hit Rate: " << fixed << setprecision(2) << hitRate << "\%" << endl;
+    }
+};
+
+int main() {
+    unsigned int cSize = 1024;
+    unsigned int bSize = 16;
+    
+    ifstream archivo("direcciones.txt");
+    if (!archivo.is_open()) {
+        cerr << "Error: No se pudo abrir direcciones.txt" << endl;
+        return 1;
+    }
+
+    vector<unsigned int> trace;
+    unsigned int addr;
+    while (archivo >> hex >> addr) trace.push_back(addr);
+    archivo.close();
+
+    CacheSimulator dm(cSize, bSize, 1);
+    CacheSimulator sa2(cSize, bSize, 2);
+    CacheSimulator sa4(cSize, bSize, 4);
+    CacheSimulator sa4pf(cSize, bSize, 4);
+
+    cout << "\nTABLA DE SEGUIMIENTO PASO A PASO" << endl;
+    cout << left << setw(12) << "Direccion" 
+         << setw(12) << "Directo" 
+         << setw(12) << "Asoc-2" 
+         << setw(12) << "Asoc-4" 
+         << setw(12) << "Asoc-4+PF" << endl;
+    cout << string(60, '-') << endl;
+
+    for (size_t i = 0; i < trace.size(); ++i) {
+        bool rDM = dm.access(trace[i], false);
+        bool rSA2 = sa2.access(trace[i], false);
+        bool rSA4 = sa4.access(trace[i], false);
+        bool rSA4PF = sa4pf.access(trace[i], true);
+
+        cout << "0x" << hex << left << setw(10) << trace[i] 
+             << setw(12) << (rDM ? "HIT" : "MISS") 
+             << setw(12) << (rSA2 ? "HIT" : "MISS") 
+             << setw(12) << (rSA4 ? "HIT" : "MISS") 
+             << setw(12) << (rSA4PF ? "HIT" : "MISS") << dec << endl;
+    }
+
+    cout << "\n" << string(75, '=') << endl;
+    cout << "                    ANALISIS COMPARATIVO FINAL" << endl;
+    cout << string(75, '=') << endl;
+    dm.printFinalStats("Mapeo Directo");
+    sa2.printFinalStats("Asociativo 2 Vias");
+    sa4.printFinalStats("Asociativo 4 Vias");
+    sa4pf.printFinalStats("Asociativo 4 Vias + Prefetch");
+    cout << string(75, '=') << endl;
+
+    return 0;
+}
+\end{lstlisting}
+
+\end{document}
